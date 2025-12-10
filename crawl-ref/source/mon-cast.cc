@@ -1492,7 +1492,7 @@ static void _cast_grasping_roots(monster &caster, mon_spell_slot, bolt&)
 
 static void _regen_monster(monster* mon, monster* source, int dur)
 {
-    mon->add_ench(mon_enchant(ENCH_REGENERATION, source, dur));
+    mon->add_ench(mon_enchant(ENCH_REGENERATION, source, dur), false);
 
     // Animate visuals
     bolt beam;
@@ -1534,10 +1534,8 @@ static void _cast_mass_regeneration(monster* caster)
 {
     vector<monster*> targs;
     for (monster_near_iterator mi(caster, LOS_NO_TRANS); mi; ++mi)
-    {
-        if (mons_aligned(caster, *mi) && !mi->has_ench(ENCH_REGENERATION))
+        if (mons_aligned(caster, *mi))
             targs.push_back(*mi);
-    }
 
     if (targs.empty())
         return;
@@ -2582,7 +2580,7 @@ bool setup_mons_cast(const monster* mons, bolt &pbolt, spell_type spell_cast,
     case SPELL_CORRUPTING_PULSE:
     case SPELL_SIREN_SONG:
     case SPELL_AVATAR_SONG:
-    case SPELL_REPEL_MISSILES:
+    case SPELL_DEFLECT_MISSILES:
     case SPELL_SUMMON_SCARABS:
     case SPELL_CLEANSING_FLAME:
     case SPELL_DRAINING_GAZE:
@@ -2875,13 +2873,13 @@ static bool _battle_cry(const monster& chief, spell_type spell_cast,
         if (spell_cast == SPELL_BATTLECRY)
         {
             // already buffed
-            if (mons->has_ench(ENCH_MIGHT))
+            if (check_only && mons->has_ench(ENCH_MIGHT))
                 continue;
         }
         else if (spell_cast == SPELL_HUNTING_CALL)
         {
             // already fast
-            if (mons->has_ench(ENCH_SWIFT) || mons->has_ench(ENCH_HASTE))
+            if (check_only && mons->has_ench(ENCH_SWIFT))
                 continue;
         }
 
@@ -2895,9 +2893,9 @@ static bool _battle_cry(const monster& chief, spell_type spell_cast,
         const int dur = random_range(12, 20) * speed_to_duration(mi->speed);
 
         if (spell_cast == SPELL_BATTLECRY)
-            mi->add_ench(mon_enchant(ENCH_MIGHT, &chief, dur));
+            mi->add_ench(mon_enchant(ENCH_MIGHT, &chief, dur), false);
         else if (spell_cast == SPELL_HUNTING_CALL)
-            mi->add_ench(mon_enchant(ENCH_SWIFT, &chief, dur));
+            mi->add_ench(mon_enchant(ENCH_SWIFT, &chief, dur), false);
 
         affected++;
         if (you.can_see(**mi))
@@ -4507,7 +4505,6 @@ static bool _can_injury_bond(const monster &protector, const monster &protectee)
                              protectee.temp_attitude())
         && !protectee.has_ench(ENCH_CHARM)
         && !protectee.has_ench(ENCH_HEXED)
-        && !protectee.has_ench(ENCH_INJURY_BOND)
         && !mons_is_projectile(protectee)
         && !protectee.is_firewood()
         && &protector != &protectee;
@@ -8133,8 +8130,8 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
             if (_can_injury_bond(*mons, **mi))
             {
                 mon_enchant bond = mon_enchant(ENCH_INJURY_BOND, mons,
-                                               40 + random2(80));
-                mi->add_ench(bond);
+                                               70 + random2(80));
+                mi->add_ench(bond, false);
             }
         }
 
@@ -8330,9 +8327,9 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
         _siren_sing(mons, true);
         return;
 
-    case SPELL_REPEL_MISSILES:
-        simple_monster_message(*mons, " begins repelling missiles!");
-        mons->add_ench(mon_enchant(ENCH_REPEL_MISSILES, mons, INFINITE_DURATION));
+    case SPELL_DEFLECT_MISSILES:
+        simple_monster_message(*mons, " begins deflecting missiles!");
+        mons->add_ench(mon_enchant(ENCH_DEFLECT_MISSILES, mons, INFINITE_DURATION));
         return;
 
     case SPELL_SUMMON_SCARABS:
@@ -9363,7 +9360,7 @@ ai_action::goodness monster_spell_goodness(monster* mon, spell_type spell)
 
     case SPELL_INJURY_BOND:
         for (monster_near_iterator mi(mon, LOS_NO_TRANS); mi; ++mi)
-            if (_can_injury_bond(*mon, **mi))
+            if (_can_injury_bond(*mon, **mi) && !mi->has_ench(ENCH_INJURY_BOND))
                 return ai_action::good(); // We found at least one target; that's enough.
         return ai_action::bad();
 
@@ -9587,8 +9584,8 @@ ai_action::goodness monster_spell_goodness(monster* mon, spell_type spell)
     case SPELL_SIREN_SONG:
         return _mesmerise_is_effective(mon, true);
 
-    case SPELL_REPEL_MISSILES:
-        return ai_action::good_or_impossible(!mon->has_ench(ENCH_REPEL_MISSILES));
+    case SPELL_DEFLECT_MISSILES:
+        return ai_action::good_or_impossible(!mon->has_ench(ENCH_DEFLECT_MISSILES));
 
     case SPELL_CONFUSION_GAZE:
         // why is this handled here unlike other gazes?

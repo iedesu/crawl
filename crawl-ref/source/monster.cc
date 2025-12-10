@@ -3082,9 +3082,12 @@ int monster::shield_bypass_ability(int) const
     return mon_shield_bypass(get_hit_dice());
 }
 
-bool monster::missile_repulsion() const
+int monster::missile_repulsion() const
 {
-    return has_ench(ENCH_REPEL_MISSILES) || scan_artefacts(ARTP_RMSL);
+    if (has_ench(ENCH_DEFLECT_MISSILES) || scan_artefacts(ARTP_RMSL))
+        return DEFLECT_MISSILES_EV_BONUS;
+
+    return 0;
 }
 
 /**
@@ -4247,7 +4250,7 @@ int monster::hurt(const actor *agent, int amount, beam_type flavour,
                 if (split > 0)
                 {
                     schedule_deferred_damage_fineff(agent, guardian,
-                                                    split, false);
+                                                    split / 2, false);
                     amount -= split;
                 }
             }

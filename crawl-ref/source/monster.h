@@ -210,7 +210,7 @@ public:
     bool has_ench(enchant_type ench, enchant_type ench2) const;
     mon_enchant get_ench(enchant_type ench,
                          enchant_type ench2 = ENCH_NONE) const;
-    bool add_ench(const mon_enchant &);
+    bool add_ench(const mon_enchant &, bool stack_duration = true);
     void update_ench(const mon_enchant &);
     bool del_ench(enchant_type ench, bool quiet = false, bool effect = true);
     bool lose_ench_duration(const mon_enchant &e, int levels);
@@ -533,7 +533,7 @@ public:
     int     shield_bonus() const override;
     void    shield_block_succeeded(actor *attacker) override;
     int     shield_bypass_ability(int tohit) const override;
-    bool    missile_repulsion() const override;
+    int     missile_repulsion() const override;
 
     bool is_player() const override { return false; }
     monster* as_monster() override { return this; }
